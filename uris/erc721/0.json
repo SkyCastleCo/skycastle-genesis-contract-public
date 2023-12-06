@@ -1,0 +1,47 @@
+{
+    "name": "#G-0",
+    "description": "These NN Companions are each assigned a unique set of personality traits on-contract. Companions can be used to “seed” AI chat applications, resulting in authentic AI-powered companions that talk to you, have unique personas, and you can build relationships with. Learn more: [test.ai](https://www.test.ai)",
+    "image": "https://public-accessibles.com/0.png",
+    "attributes": [
+        {
+            "trait_type": "personality_trait",
+            "value": "personality1"
+        },
+        {
+            "trait_type": "personality_trait",
+            "value": "personality2"
+        },
+        {
+            "trait_type": "personality_trait",
+            "value": "personality3"
+        },
+        {
+            "trait_type": "personality_trait",
+            "value": "personality4"
+        },
+        {
+            "trait_type": "personality_trait",
+            "value": "personality5"
+        },
+        {
+            "trait_type": "gender",
+            "value": "female"
+        },
+        {
+            "trait_type": "theme",
+            "value": "theme5"
+        },
+        {
+            "trait_type": "horoscope",
+            "value": "horoscope1"
+        },
+        {
+            "trait_type": "orientation",
+            "value": "orientation2"
+        },
+        {
+            "trait_type": "background",
+            "value": "Background4"
+        }
+    ]
+}
