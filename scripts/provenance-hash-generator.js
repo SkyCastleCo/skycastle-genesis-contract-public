@@ -1,8 +1,8 @@
-import { keccak_256 as keccak256 } from 'js-sha3';
-import * as fs from 'fs';
-import path from 'path';
+const { keccak_256 } = require('js-sha3');
+const fs = require('fs');
+const path = require('path');
 
-const MAX_SUPPLY = 12000;
+const MAX_SUPPLY = 2; // set 12000 if all metadata/images are ready. for now its sample
 
 let concatenantedHash = "";
 
@@ -25,19 +25,19 @@ individualHashStream.end();
 
 fs.writeFileSync(path.join((__dirname + "/../uris/erc721/"), 'concatenantedHash.txt'), concatenantedHash);
 
-const finalHash = `0x${keccak256(concatenantedHash)}`
+const finalHash = `0x${keccak_256(concatenantedHash)}`
 
-fs.writeFileSync(path.join((__dirname + "/uris/erc721/"), 'finalHash.txt'), finalHash);
+fs.writeFileSync(path.join((__dirname + "/../uris/erc721/"), 'finalHash.txt'), finalHash);
 
 function generateHash(filename, imagename) {
-    const metadataFile = fs.readFileSync(path.join((__dirname + "/uris/erc721/"), filename), 'utf-8');
-    const imageFile = fs.readFileSync(path.join((__dirname + "/uris/erc721/"), imagename), 'utf-8');
+    const metadataFile = fs.readFileSync(path.join((__dirname + "/../uris/erc721/"), filename), 'utf-8');
+    const imageFile = fs.readFileSync(path.join((__dirname + "/../uris/erc721/"), imagename), 'utf-8');
     // Generate a hash using Ethereum Keccak (SHA-3) compatible algorithm
-    const keccakHashMetadata = `0x${keccak256(metadataFile)}`;
-    const keccakHashImagedata = `0x${keccak256(imageFile)}`;
+    const keccakHashMetadata = `0x${keccak_256(metadataFile)}`;
+    const keccakHashImagedata = `0x${keccak_256(imageFile)}`;
 
     const metadataPlusImageCombinedHash = keccakHashMetadata + keccakHashImagedata;
-    const combinedKeccakHash = `0x${keccak256(metadataPlusImageCombinedHash)}`;
+    const combinedKeccakHash = `0x${keccak_256(metadataPlusImageCombinedHash)}`;
     console.log('Keccak Hash (SHA-3):', combinedKeccakHash);
     return combinedKeccakHash;
 }

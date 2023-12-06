@@ -193,20 +193,10 @@ To run unit tests locally:
 To test on Remix:
 `Replace @openzeppelin/contract/ for @openzeppelin/contracts@4.9.3/`
 
-### To deploy on ETHEREUM Goerli
-
-   1. Ensure you've already compiled the contract via `npx hardhat compile`
-   2. Ensure .env `BLOCKCHAIN_NET='goerli'` and `SSM_ALCHEMY_API_KEY_NAME="/alchemy/dev/goerli/apikey`
-   3. Run `node scripts/create-wallet.js`
-   4. Ensure wallet-info.json is created. This wallet will just be used to deploy and discarded after.
-   5. Run `node scripts/deploy.js`
-   6. Update Deployment's Constructor Variables at this script: `scripts/arguments-verify.js`
-   7. Run `npx hardhat verify --constructor-args scripts/arguments-verify.js --network goerli ${contractAddress}` - example: `npx hardhat verify --constructor-args scripts/arguments-verify.js --network goerli 0xC873A5D68259C6d2D9be379bE01c4505fBDD61ea`
-
 ### To deploy on ETHEREUM Sepolia
 
    1. Ensure you've already compiled the contract via `npx hardhat compile`
-   2. Ensure .env `BLOCKCHAIN_NET='sepolia'` and `SSM_ALCHEMY_API_KEY_NAME="/alchemy/dev/sepolia/apikey`
+   2. Ensure .env `SEPOLIA_ALCHEMY_API_KEY` is populated. Create one free at `https://www.alchemy.com/`
    3. Run `node scripts/create-wallet.js`
    4. Ensure wallet-info.json is created. This wallet will just be used to deploy and discarded after.
    5. Run `node scripts/deploy.js`
@@ -216,7 +206,7 @@ To test on Remix:
 ### To deploy on ETHEREUM Mainnet
 
    1. Ensure you've already compiled the contract via `npx hardhat compile`
-   2. Ensure .env `BLOCKCHAIN_NET='homestead'`
+   2. Ensure .env `MAINNET_ALCHEMY_API_KEY` is populated.
    3. Run `node scripts/create-wallet.js`
    4. Ensure wallet-info.json is created. This wallet will just be used to deploy and discarded after.
    5. Run `node scripts/deploy.js`
