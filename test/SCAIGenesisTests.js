@@ -1,7 +1,7 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { CouponType } = require('../enum');
+const { CouponStatus } = require('../enum');
 const CouponService = require('../services/CouponService');
 const { generateKeyPair } = require('../services/KeyService');
 

@@ -1,40 +1,24 @@
 const { ethers } = require("hardhat");
 const fs = require("fs");
-const { GetParameterCommand, SSMClient } = require("@aws-sdk/client-ssm");
-const { SSM_ALCHEMY_API_KEY_NAME, NODE_ENV, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BLOCKCHAIN_NET, COUPON_PUBLIC_KEY } = require("../config");
+const { generateKeyPair } = require('../services/KeyService');
+const { SEPOLIA_ALCHEMY_API_KEY, MAINNET_ALCHEMY_API_KEY } = require("../config");
 
 async function main() {
 
     console.log("Starting deployment script.");
 
-    const input = {
-        Name: SSM_ALCHEMY_API_KEY_NAME, // required
-        WithDecryption: true,
-    };
-    const command = new GetParameterCommand(input);
+    // uncomment if mainnet is required.
+    // const provider = new ethers.AlchemyProvider("homestead", MAINNET_ALCHEMY_API_KEY);
+    const provider = new ethers.AlchemyProvider("sepolia", SEPOLIA_ALCHEMY_API_KEY);
+    console.log(SEPOLIA_ALCHEMY_API_KEY);
 
-    let ssmClient;
-    if (NODE_ENV === "local") {
-        ssmClient = new SSMClient({
-            "credentials": {
-                "accessKeyId": AWS_ACCESS_KEY_ID,
-                "secretAccessKey": AWS_SECRET_ACCESS_KEY,
-            },
-            "region": AWS_REGION
-        });
-    } else {
-        ssmClient = new SSMClient({ region: AWS_REGION });
+    let deployerWallet = null;
+    try {
+        deployerWallet = JSON.parse(fs.readFileSync('wallet-info.json', 'utf-8'));
+    } catch (error) {
+        throw new Error("Deployer Wallet not found. Please run `node create-wallet.js`")
     }
 
-    const response = await ssmClient.send(command);
-
-    if (!response.Parameter.Value) {
-        throw new Error("Parameter Value invalid");
-    }
-
-    const provider = new ethers.AlchemyProvider(BLOCKCHAIN_NET, response.Parameter.Value);
-
-    const deployerWallet = JSON.parse(fs.readFileSync('wallet-info.json', 'utf-8'));
     const { address, privateKey } = deployerWallet;
 
     const walletSigner = new ethers.Wallet(privateKey, provider);
@@ -46,16 +30,14 @@ async function main() {
         mainAdminWallet = JSON.parse(fs.readFileSync('wallet-info-mainAdmin.json', 'utf-8'));
         lowerAdmin = JSON.parse(fs.readFileSync('wallet-info-lowerAdmin.json', 'utf-8'));
     } catch (error) {
-        console.log("No Lower Admin / Main Admin json wallet files found. Will Create them if (env = development) ");
+        console.log("No Lower Admin / Main Admin json wallet files found. Will Create them.");
     }
 
-    if (NODE_ENV === 'development') {
-        if (!mainAdminWallet) {
-            mainAdminWallet = createDevWallet('mainAdmin');
-        }
-        if (!lowerAdmin) {
-            lowerAdmin = createDevWallet('lowerAdmin');
-        }
+    if (!mainAdminWallet) {
+        mainAdminWallet = createDevWallet('mainAdmin');
+    }
+    if (!lowerAdmin) {
+        lowerAdmin = createDevWallet('lowerAdmin');
     }
 
     let lowerAdminPublicAddress = lowerAdmin.address;
@@ -66,10 +48,19 @@ async function main() {
     const MAX_SUPPLY = 12000;
     const TREASURY_RESERVE = 1200;
 
-    if (!COUPON_PUBLIC_KEY) {
-        throw new Error("COUPON_PUBLIC_KEY should be valid");
+    let couponKeyPair = null;
+
+    try {
+        couponKeyPair = JSON.parse(fs.readFileSync('coupon-keypair.json', 'utf-8'));
+    } catch (error) {
+        console.log("Keypair NotFound. Will Create them.");
     }
-    const couponPublicKey = COUPON_PUBLIC_KEY;
+
+    if (couponKeyPair == null) {
+        couponKeyPair = generateCouponKeyPair();
+    }
+
+    const couponPublicKey = couponKeyPair.public;
 
     const genesisNFTContract = await ethers.getContractFactory("SCAIGenesis");
 
@@ -101,6 +92,14 @@ function createDevWallet(type) {
     fs.writeFileSync(fileName, JSON.stringify(walletData, null, 2));
 
     return walletData;
+}
+
+function generateCouponKeyPair() {
+    const keypair = generateKeyPair();
+    const fileName = `coupon-keypair.json`;
+    // Save the wallet data to a JSON file
+    fs.writeFileSync(fileName, JSON.stringify(keypair, null, 2));
+    return keypair;
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -12,10 +12,9 @@ const mainAdminWallet = JSON.parse(fs.readFileSync('wallet-info-mainAdmin.json',
 let lowerAdminPublicAddress = lowerAdmin.address;
 let adminPublicAddress = mainAdminWallet.address;
 
-if (!COUPON_PUBLIC_KEY) {
-    throw new Error("COUPON_PUBLIC_KEY should be valid");
-}
-const couponPublicKey = COUPON_PUBLIC_KEY;
+const couponKeyPair = JSON.parse(fs.readFileSync('coupon-keypair.json', 'utf-8'));
+
+const couponPublicKey = couponKeyPair.public;
 
 module.exports = [
     contractUri,

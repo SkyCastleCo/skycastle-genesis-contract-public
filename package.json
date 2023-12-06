@@ -7,6 +7,10 @@
     "generate-key": "node scripts/key-generator.js",
     "generate-coupons": "node scripts/coupon-generator.js"
   },
+  "engines" : {
+    "npm" : ">=9.5.1",
+    "node" : "18.19.0"
+  },
   "author": "",
   "license": "ISC",
   "devDependencies": {
