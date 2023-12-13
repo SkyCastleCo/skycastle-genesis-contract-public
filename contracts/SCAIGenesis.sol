@@ -162,8 +162,8 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
         require(msg.value == mintPrice, "Incorrect payment");
         // check treasury
         require((availableTokenCount() - 1) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
-        _safeMint(msg.sender, nextToken());
         publicAddressMintCount[msg.sender]++;
+        _safeMint(msg.sender, nextToken());
     }
 
     /**
@@ -176,10 +176,10 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
         require(quantity <= 7, "Batch Public Mint should be no more than 7 at a time");
         // check treasury
         require((availableTokenCount() - quantity) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
+        publicAddressMintCount[msg.sender] += quantity;
         for(uint16 i = 0 ; i < quantity; i++) {
             _safeMint(msg.sender, nextToken());
         }
-        publicAddressMintCount[msg.sender] += quantity;
     }
 
 
@@ -204,8 +204,9 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
         // check treasury
         require((availableTokenCount() - 1) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
 
-        _safeMint(msg.sender, nextToken());
         presaleCouponMintCount[digest]++;
+        _safeMint(msg.sender, nextToken());
+
         emit CouponUsed(msg.sender, digest, 1, couponNumber, allocation);
     }
 
@@ -232,10 +233,11 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
         // check treasury
         require((availableTokenCount() - amountToMint) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
 
+        presaleCouponMintCount[digest] += amountToMint;
+
         for(uint i = 0 ; i < amountToMint; i++) {
             _safeMint(msg.sender, nextToken());
         }
-        presaleCouponMintCount[digest] += amountToMint;
 
         emit CouponUsed(msg.sender, digest, amountToMint, couponNumber, allocation);
     }
@@ -278,10 +280,10 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     function treasuryMint(address toAddress, uint16 qty) external whenNotPaused ensureAvailability(qty) onlyRole(AIRDROP_ROLE) {
         require(qty <= 7, "Treasury Mint no more than 7 at a time");
         require((qty + treasuryMints) <= TREASURY_RESERVATION, "Amount to Mint Exceeds the Mint Allocation");
+        treasuryMints += qty;
         for(uint i = 0 ; i < qty; i++) {
             _safeMint(toAddress, nextToken());
         }
-        treasuryMints += qty;
     }
 
     /**
