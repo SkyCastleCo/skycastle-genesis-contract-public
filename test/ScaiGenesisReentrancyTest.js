@@ -104,6 +104,8 @@ describe("ScaiGenesisReentrancyTest", function () {
                         genesisAttackPresalePurchaseAttack.target
                     )
                     console.log("GenesisScai balance of Hacker Contract:", hackerContractBalance);
+
+                    expect(hackerContractBalance).to.equals(0);
                 });
         });
 
@@ -140,7 +142,7 @@ describe("ScaiGenesisReentrancyTest", function () {
 
                     let hackerContractBalance = await genesisContractDeployed.balanceOf(genesisAttackPresalePurchaseBatchAttack.target);
                     console.log("GenesisScai balance of Hacker Contract:", hackerContractBalance);
-                    expect(hackerContractBalance).to.be.lessThanOrEqual(couponLimit);
+                    expect(hackerContractBalance).to.equals(0);
                 }
             );
         });
@@ -153,8 +155,6 @@ describe("ScaiGenesisReentrancyTest", function () {
                     hacker,
                     lowerAdminAccount,
                 } = await loadFixture(deployGenesisContractFixture);
-
-                const maxMintPerWallet = await genesisContractDeployed.allowedPublicMintTokenCount();
 
                 await genesisContractDeployed.connect(lowerAdminAccount).setMintPrice(ethers.parseEther("0.0025"));
                 await genesisContractDeployed.connect(lowerAdminAccount).setPublicPurchaseOpened(true);
@@ -172,10 +172,8 @@ describe("ScaiGenesisReentrancyTest", function () {
                 )).to.be.revertedWith(MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE);
 
                 let hackerContractBalance = await genesisContractDeployed.balanceOf(genesisAttackPublicPurchaseBatchAttack.target)
-
-                expect(hackerContractBalance).to.be.lessThanOrEqual(maxMintPerWallet);
-
                 console.log("GenesisScai balance of Hacker Contract:", hackerContractBalance);
+                expect(hackerContractBalance).to.equals(0);
             });
         })
 
@@ -188,7 +186,6 @@ describe("ScaiGenesisReentrancyTest", function () {
                     lowerAdminAccount,
                 } = await loadFixture(deployGenesisContractFixture);
 
-                const maxMintPerWallet = await genesisContractDeployed.allowedPublicMintTokenCount();
                 await genesisContractDeployed.connect(lowerAdminAccount).setMintPrice(ethers.parseEther("0.0025"));
                 await genesisContractDeployed.connect(lowerAdminAccount).setPublicPurchaseOpened(true);
 
@@ -207,7 +204,7 @@ describe("ScaiGenesisReentrancyTest", function () {
 
                 console.log("GenesisScai balance of Hacker Contract:", hackerContractBalance);
 
-                expect(hackerContractBalance).to.be.lessThanOrEqual(maxMintPerWallet);
+                expect(hackerContractBalance).to.equals(0);
 
             });
         })
