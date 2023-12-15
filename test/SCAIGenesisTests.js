@@ -6,20 +6,17 @@ const CouponService = require('../services/CouponService');
 const { generateKeyPair } = require('../services/KeyService');
 
 // Error Messages
-const INSUFFICIENT_VALUE_SENT_ERROR_MESSAGE = "Incorrect payment";
-const INVALID_COUPON_ERROR_MESSAGE = "Invalid coupon";
-const WAIT_FOR_PRIVATE_PURCHASE_TO_OPEN = "Wait for private purchase to open";
-const MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE = "Max public mints per wallet reached";
-const NO_MORE_TOKENS_LEFT_ERROR_MESSAGE = "Requested number of tokens not available"; // more than one qty requested
-const NO_MORE_TOKEN_LEFT_ERROR_MESSAGE = "No more tokens available"; // single qty
-const ALLOCATION_EXCEED_ERROR_MESSAGE = "Allocation Exceeded";
-const EXCEEDED_BATCH_MINT_SIZE_AT_ONE_GO_ERROR_MESSAGE = "Batch Mint no more than 7 at a time";
-const TREASURY_RESERVATION_ALLOCATION_LEFT = "No More NFT for Sale";
-const WAIT_FOR_PUBLIC_PURCHASE_TO_OPEN = "Wait for public purchase to open";
+const INSUFFICIENT_VALUE_SENT_CUSTOM_ERROR_MESSAGE = "InsufficientValueSent";
+const INVALID_COUPON_CUSTOM_ERROR_MESSAGE = "InvalidCoupon";
+const WAIT_FOR_PRIVATE_PURCHASE_TO_OPEN = "PrivatePurchaseNotOpen";
+const MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE = "MaxMintReachedForPublicWallet";
+const ALLOCATION_EXCEED_ERROR_MESSAGE = "AllocationExceeded";
+const EXCEEDED_BATCH_MINT_SIZE_AT_ONE_GO_ERROR_MESSAGE = "BatchMintSizeExceeded";
+const NO_MORE_SALE_NFTS_LEFT = "NoMoreTokensLeft";
+const TREASURY_RESERVATION_ALLOCATION_EXCEEDED = "TreasuryReservationAllocationExceeded";
+const WAIT_FOR_PUBLIC_PURCHASE_TO_OPEN = "PublicPurchaseNotOpen";
 const NOT_OWNER_OF_CONTRACT_ERROR = "Ownable: caller is not the owner";
-const CONTRACT_ALREADY_LOCKED_ERROR = "The contract has been locked and the Base URI cannot be changed";
-const INVALID_MAX_SUPPLY_EM = "Max Supply must be 12000 or below.";
-const INVALID_TREASURY_SUPPLY_EM = "Treasury Reservation must be 1200 or below";
+const CONTRACT_ALREADY_LOCKED_ERROR = "ContractAlreadyLocked";
 
 const CONTRACT_NAME = "Sky Castle Companions - Genesis";
 const CONTRACT_SYMBOL = "SCAIG";
@@ -231,15 +228,14 @@ describe("SCAIGenesisTests", function () {
             const contractUri = "https://public-accessibles.s3.amazonaws.com/skycastle/metadata/genesis/";
             const couponSigner = "0x0E367d1785106bD6cFa589FD50a146ac76B0f62d";
             const [owner, adminAccount, lowerAdminAccount] = await ethers.getSigners();
-            const genesisContractToBeDeployed = genesisContract.connect(owner).deploy(
+            const genesisContractToBeDeployed = await expect(genesisContract.connect(owner).deploy(
                 contractUri,
                 12001,
                 TREASURY_RESERVATION,
                 couponSigner,
                 adminAccount.address,
                 lowerAdminAccount.address
-            );
-            await (expect(genesisContractToBeDeployed).to.be.revertedWith(INVALID_MAX_SUPPLY_EM));
+            )).to.be.reverted;
         });
 
         // Test Alternate Error Handlings
@@ -249,15 +245,14 @@ describe("SCAIGenesisTests", function () {
             const contractUri = "https://public-accessibles.s3.amazonaws.com/skycastle/metadata/genesis/";
             const couponSigner = "0x0E367d1785106bD6cFa589FD50a146ac76B0f62d";
             const [owner, adminAccount, lowerAdminAccount] = await ethers.getSigners();
-            const genesisContractToBeDeployed = genesisContract.connect(owner).deploy(
+            const genesisContractToBeDeployed = await expect(genesisContract.connect(owner).deploy(
                 contractUri,
                 MAX_SUPPLY,
                 1201,
                 couponSigner,
                 adminAccount.address,
                 lowerAdminAccount.address
-            );
-            await (expect(genesisContractToBeDeployed).to.be.revertedWith(INVALID_TREASURY_SUPPLY_EM));
+            )).to.be.reverted;
         });
 
         it("should have correct ERC-721 name", async function () {
@@ -309,7 +304,8 @@ describe("SCAIGenesisTests", function () {
                 await expect(genesisContractDeployed.publicPurchase({
                     gasLimit: 3000000,
                     value: ethers.parseEther("0.025")
-                })).to.be.revertedWith(
+                })).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
                     WAIT_FOR_PUBLIC_PURCHASE_TO_OPEN
                 );
             });
@@ -320,8 +316,9 @@ describe("SCAIGenesisTests", function () {
                 await expect(genesisContractDeployed.publicPurchase({
                     gasLimit: 3000000,
                     value: ethers.parseEther("0.01") // error value
-                })).to.be.revertedWith(
-                    INSUFFICIENT_VALUE_SENT_ERROR_MESSAGE
+                })).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    INSUFFICIENT_VALUE_SENT_CUSTOM_ERROR_MESSAGE
                 );
             });
 
@@ -380,7 +377,8 @@ describe("SCAIGenesisTests", function () {
                 await expect(genesisContractDeployed.publicPurchase({
                     gasLimit: 3000000,
                     value: ethers.parseEther("0.025") // correct value
-                })).to.be.revertedWith(
+                })).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
                     MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE
                 );
             });
@@ -446,7 +444,8 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.025")
                     }
-                )).to.be.revertedWith(
+                )).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
                     WAIT_FOR_PUBLIC_PURCHASE_TO_OPEN
                 );
             });
@@ -457,8 +456,9 @@ describe("SCAIGenesisTests", function () {
                 await expect(genesisContractDeployed.publicPurchaseBatch(2, {
                     gasLimit: 3000000,
                     value: ethers.parseEther("0.04999") // error value
-                })).to.be.revertedWith(
-                    INSUFFICIENT_VALUE_SENT_ERROR_MESSAGE
+                })).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    INSUFFICIENT_VALUE_SENT_CUSTOM_ERROR_MESSAGE
                 );
             });
 
@@ -580,7 +580,8 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.025") // correct value
                     }
-                )).to.be.revertedWith(
+                )).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
                     MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE
                 );
             });
@@ -656,8 +657,9 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.025"),
                     })
-                ).to.be.revertedWith(
-                    INVALID_COUPON_ERROR_MESSAGE
+                ).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    INVALID_COUPON_CUSTOM_ERROR_MESSAGE
                 );
             });
 
@@ -723,8 +725,9 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.025"),
                     })
-                ).to.be.revertedWith(
-                    TREASURY_RESERVATION_ALLOCATION_LEFT
+                ).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    NO_MORE_SALE_NFTS_LEFT
                 );
             });
 
@@ -799,8 +802,9 @@ describe("SCAIGenesisTests", function () {
                             gasLimit: 3000000,
                             value: ethers.parseEther("0.025"),
                         })
-                    ).to.be.revertedWith(
-                        INVALID_COUPON_ERROR_MESSAGE
+                    ).to.be.revertedWithCustomError(
+                        genesisContractDeployed,
+                        INVALID_COUPON_CUSTOM_ERROR_MESSAGE
                     );
                 });
 
@@ -817,8 +821,9 @@ describe("SCAIGenesisTests", function () {
                             gasLimit: 3000000,
                             value: ethers.parseEther("0.025"),
                         })
-                    ).to.be.revertedWith(
-                        INVALID_COUPON_ERROR_MESSAGE
+                    ).to.be.revertedWithCustomError(
+                        genesisContractDeployed,
+                        INVALID_COUPON_CUSTOM_ERROR_MESSAGE
                     );
                 });
             });
@@ -837,7 +842,8 @@ describe("SCAIGenesisTests", function () {
                             gasLimit: 3000000,
                             value: ethers.parseEther("0.025"),
                         })
-                    ).to.be.revertedWith(
+                    ).to.be.revertedWithCustomError(
+                        genesisContractDeployed,
                         WAIT_FOR_PRIVATE_PURCHASE_TO_OPEN
                     );
                 });
@@ -855,8 +861,9 @@ describe("SCAIGenesisTests", function () {
                             gasLimit: 3000000,
                             value: ethers.parseEther("0.015"),
                         })
-                    ).to.be.revertedWith(
-                        INSUFFICIENT_VALUE_SENT_ERROR_MESSAGE
+                    ).to.be.revertedWithCustomError(
+                        genesisContractDeployed,
+                        INSUFFICIENT_VALUE_SENT_CUSTOM_ERROR_MESSAGE
                     );
                 });
 
@@ -953,8 +960,9 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.05"),
                     })
-                ).to.be.revertedWith(
-                    TREASURY_RESERVATION_ALLOCATION_LEFT
+                ).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    NO_MORE_SALE_NFTS_LEFT
                 );
             });
 
@@ -972,7 +980,7 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.375") // correct value
                     }
-                )).to.be.revertedWith(EXCEEDED_BATCH_MINT_SIZE_AT_ONE_GO_ERROR_MESSAGE);
+                )).to.be.revertedWithCustomError(genesisContractDeployed, EXCEEDED_BATCH_MINT_SIZE_AT_ONE_GO_ERROR_MESSAGE);
 
             });
 
@@ -1048,7 +1056,8 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.05"),
                     })
-                ).to.be.revertedWith(
+                ).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
                     ALLOCATION_EXCEED_ERROR_MESSAGE
                 );
             });
@@ -1067,8 +1076,9 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.03"),
                     })
-                ).to.be.revertedWith(
-                    INSUFFICIENT_VALUE_SENT_ERROR_MESSAGE
+                ).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    INSUFFICIENT_VALUE_SENT_CUSTOM_ERROR_MESSAGE
                 );
             });
 
@@ -1086,8 +1096,9 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.05"),
                     })
-                ).to.be.revertedWith(
-                    INVALID_COUPON_ERROR_MESSAGE
+                ).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    INVALID_COUPON_CUSTOM_ERROR_MESSAGE
                 );
             });
 
@@ -1105,7 +1116,8 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.05"),
                     })
-                ).to.be.revertedWith(
+                ).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
                     WAIT_FOR_PRIVATE_PURCHASE_TO_OPEN
                 );
             });
@@ -1243,7 +1255,8 @@ describe("SCAIGenesisTests", function () {
                 await expect(genesisContractDeployed.connect(otherAccount).publicPurchase({
                     gasLimit: 3000000,
                     value: ethers.parseEther("0.025") // correct value
-                })).to.be.revertedWith(
+                })).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
                     MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE
                 );
             })
@@ -1303,7 +1316,7 @@ describe("SCAIGenesisTests", function () {
                         gasLimit: 3000000,
                         value: ethers.parseEther("0.025"),
                     })
-                ).to.be.revertedWith(ALLOCATION_EXCEED_ERROR_MESSAGE);
+                ).to.be.revertedWithCustomError(genesisContractDeployed, ALLOCATION_EXCEED_ERROR_MESSAGE);
             })
 
             it("Should not airdrop a Genesis token to designated account when the max supply (taking in account of treasury reservations) has exceeded", async function () {
@@ -1334,7 +1347,10 @@ describe("SCAIGenesisTests", function () {
                     {
                         gasLimit: 3000000,
                     }
-                )).to.be.revertedWith(TREASURY_RESERVATION_ALLOCATION_LEFT);
+                )).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    NO_MORE_SALE_NFTS_LEFT
+                );
             })
 
             it("Should not airdrop a Genesis token to designated account when the contract is paused", async function () {
@@ -1413,7 +1429,10 @@ describe("SCAIGenesisTests", function () {
 
                 expect(tokenIdArray.length).to.equal((MAX_SUPPLY - TREASURY_RESERVATION));
 
-                await expect(genesisContractDeployed.connect(lowerAdminAccount).airdrop(otherAccount.address, 1)).to.be.revertedWith(TREASURY_RESERVATION_ALLOCATION_LEFT);
+                await expect(genesisContractDeployed.connect(lowerAdminAccount).airdrop(otherAccount.address, 1)).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    NO_MORE_SALE_NFTS_LEFT
+                );
 
                 for (let i = 0; i < 50; i++) {
                     const mintTransaction = await genesisContractDeployed.connect(lowerAdminAccount).treasuryMint(
@@ -1472,7 +1491,10 @@ describe("SCAIGenesisTests", function () {
 
                 expect(tokenIdArray.length).to.equal((MAX_SUPPLY - TREASURY_RESERVATION));
 
-                await expect(genesisContractDeployed.connect(lowerAdminAccount).airdrop(otherAccount.address, 1)).to.be.revertedWith(TREASURY_RESERVATION_ALLOCATION_LEFT);
+                await expect(genesisContractDeployed.connect(lowerAdminAccount).airdrop(otherAccount.address, 1)).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    NO_MORE_SALE_NFTS_LEFT
+                );
 
                 for (let i = 0; i < (Math.round(TREASURY_RESERVATION / multipleMintLimitPerTransaction)); i++) {
                     const mintTransaction = await genesisContractDeployed.connect(lowerAdminAccount).treasuryMint(
@@ -1612,6 +1634,16 @@ describe("SCAIGenesisTests", function () {
 
                 expect(await genesisContractDeployed.treasuryMints()).to.equal(TREASURY_RESERVATION);
                 expect(tokenIdArray.length).to.equal((TREASURY_RESERVATION));
+
+                const mintTransactionThatShouldFail = genesisContractDeployed.connect(lowerAdminAccount).treasuryMint(
+                    otherAccount.address,
+                    1,
+                    {
+                        gasLimit: 3000000
+                    }
+                );
+
+                await expect(mintTransactionThatShouldFail).to.be.revertedWithCustomError(genesisContractDeployed, TREASURY_RESERVATION_ALLOCATION_EXCEEDED);
             })
 
             it("Should not treasury mint a Genesis token to designated account when the contract is paused", async function () {
@@ -1667,12 +1699,17 @@ describe("SCAIGenesisTests", function () {
             const newBaseURI = "https://test-public-accessibles.com/skycastle/metadata/genesis/";
             await genesisContractDeployed.connect(owner).lockContract();
             expect(await genesisContractDeployed.contractLocked()).to.equal(true);
-            await expect(genesisContractDeployed.connect(lowerAdminAccount).setURI(newBaseURI)).to.be.revertedWith(CONTRACT_ALREADY_LOCKED_ERROR);
+            await expect(genesisContractDeployed.connect(lowerAdminAccount).setURI(newBaseURI)).to.be.revertedWithCustomError(
+                genesisContractDeployed,
+                CONTRACT_ALREADY_LOCKED_ERROR
+            );
         });
 
         it("Should not allow admin to lock the contract to prevent further the base URI changes", async function () {
             const { genesisContractDeployed, adminAccount } = await loadFixture(deployGenesisContractFixture);
-            await expect(genesisContractDeployed.connect(adminAccount).lockContract()).to.be.revertedWith(NOT_OWNER_OF_CONTRACT_ERROR);
+            await expect(genesisContractDeployed.connect(adminAccount).lockContract()).to.be.revertedWith(
+                NOT_OWNER_OF_CONTRACT_ERROR
+            );
         });
 
 
@@ -2308,7 +2345,10 @@ describe("SCAIGenesisTests", function () {
             }
 
             for (let i = 0; i < 1; i++) {
-                await expect(genesisContractDeployed.connect(lowerAdminAccount).airdrop(otherAccount.address, 1)).to.be.revertedWith(TREASURY_RESERVATION_ALLOCATION_LEFT);
+                await expect(genesisContractDeployed.connect(lowerAdminAccount).airdrop(otherAccount.address, 1)).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    NO_MORE_SALE_NFTS_LEFT
+                );
             }
             expect(tokenIdArray.length).to.equal(MAX_SUPPLY - TREASURY_RESERVATION);
         });
@@ -2342,7 +2382,10 @@ describe("SCAIGenesisTests", function () {
             }
 
             for (let i = 0; i < 1; i++) {
-                await expect(genesisContractDeployed.connect(lowerAdminAccount).airdrop(otherAccount.address, 1)).to.be.revertedWith(TREASURY_RESERVATION_ALLOCATION_LEFT);
+                await expect(genesisContractDeployed.connect(lowerAdminAccount).airdrop(otherAccount.address, 1)).to.be.revertedWithCustomError(
+                    genesisContractDeployed,
+                    NO_MORE_SALE_NFTS_LEFT
+                );
             }
             expect(tokenIdArray.length).to.equal((MAX_SUPPLY - TREASURY_RESERVATION));
         });
@@ -2380,7 +2423,10 @@ describe("SCAIGenesisTests", function () {
                     gasLimit: 3000000,
                     value: ethers.parseEther("0.075") // correct value
                 }
-            )).to.be.revertedWith(TREASURY_RESERVATION_ALLOCATION_LEFT);
+            )).to.be.revertedWithCustomError(
+                genesisContractDeployed,
+                NO_MORE_SALE_NFTS_LEFT
+            );
 
             expect(await genesisContractDeployed.connect(owner).tokenCount()).to.equal((MAX_SUPPLY - TREASURY_RESERVATION));
         })
@@ -2420,7 +2466,8 @@ describe("SCAIGenesisTests", function () {
                     gasLimit: 3000000,
                     value: ethers.parseEther("0.025"),
                 })
-            ).to.be.revertedWith(
+            ).to.be.revertedWithCustomError(
+                genesisContractDeployed,
                 ALLOCATION_EXCEED_ERROR_MESSAGE
             );
 
@@ -2613,7 +2660,7 @@ describe("SCAIGenesisTests", function () {
                     gasLimit: 3000000,
                     value: ethers.parseEther("0.025") // correct value
                 }
-            )).to.be.revertedWith(MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE);
+            )).to.be.revertedWithCustomError(genesisContractDeployed, MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE);
         });
     })
 
