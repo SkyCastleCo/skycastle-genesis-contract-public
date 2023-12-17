@@ -20,6 +20,22 @@ import "closedsea/src/OperatorFilterer.sol";
 * @custom:security-contact contact@skycastle.ai
 */
 contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, AccessControl, ReentrancyGuard, OperatorFilterer {
+
+    error InsufficientValueSent();
+    error InvalidCoupon();
+    error InvalidTokenId();
+    error InvalidSignature();
+    error PrivatePurchaseNotOpen();
+    error MaxMintReachedForPublicWallet();
+    error NoMoreTokensLeft();
+    error AllocationExceeded();
+    error BatchMintSizeExceeded();
+    error TreasuryReservationAllocationExceeded();
+    error PublicPurchaseNotOpen();
+    error ContractAlreadyLocked();
+    error InvalidMaxSupply();
+    error InvalidTreasurySupply();
+
     using Counters for Counters.Counter;
     Counters.Counter private _mintCounter;
 
@@ -85,20 +101,23 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
 
     /// @dev Modifier to Prevent Public purchase of NFT until after isPublicPurchaseOpened is set to true
     modifier onlyDuringOpenedForPublicPurchase() {
-        require(isPublicPurchaseOpened, "Wait for public purchase to open");
+        if (!isPublicPurchaseOpened)
+            revert PublicPurchaseNotOpen();
         _;
     }
 
     /// @dev Modifier to Prevent Presale purchase of NFT until after isPrivatePurchaseOpened is set to true
     modifier onlyDuringOpenedForPrivateSale() {
-        require(isPrivatePurchaseOpened, "Wait for private purchase to open");
+        if (!isPrivatePurchaseOpened)
+            revert PrivatePurchaseNotOpen();
         _;
     }
 
     /// @dev Check whether another token is still available
     /// @param qty quatity to mint
     modifier ensureAvailability(uint16 qty) {
-        require(availableTokenCount() >= qty, "No more NFT tokens left");
+        if (availableTokenCount() < qty)
+            revert NoMoreTokensLeft();
         _;
     }
 
@@ -106,7 +125,8 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     /// @param additionalTokens additional tokens that the user would want to mint
     /// @dev Only allow an address to mint N amount of token per wallet
     modifier withinPublicMintTokenLimit(address toAddress, uint16 additionalTokens) {
-        require(((publicAddressMintCount[toAddress] + additionalTokens) <= allowedPublicMintTokenCount), "Max public mints per wallet reached");
+        if (((publicAddressMintCount[toAddress] + additionalTokens) > allowedPublicMintTokenCount))
+            revert MaxMintReachedForPublicWallet();
         _;
     }
 
@@ -126,8 +146,11 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
         )
         ERC721("Sky Castle Companions - Genesis", "SCAIG")
     {
-        require(_maxSupply <= 12000, "Max Supply must be 12000 or below.");
-        require(_treasuryReservation <= 1200, "Treasury Reservation must be 1200 or below");
+        if (_maxSupply > 12000)
+            revert InvalidMaxSupply();
+
+        if (_treasuryReservation > 1200)
+            revert InvalidTreasurySupply();
 
         MAX_SUPPLY = _maxSupply;
         TREASURY_RESERVATION = _treasuryReservation;
@@ -159,9 +182,13 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     */
     function publicPurchase() payable external whenNotPaused onlyDuringOpenedForPublicPurchase ensureAvailability(1) withinPublicMintTokenLimit(msg.sender, 1) {
         // Check if the user has sent the required funds
-        require(msg.value == mintPrice, "Incorrect payment");
+        if (msg.value != mintPrice)
+            revert InsufficientValueSent();
+
         // check treasury
-        require((availableTokenCount() - 1) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
+        if ((availableTokenCount() - 1) < (TREASURY_RESERVATION - treasuryMints))
+            revert NoMoreTokensLeft();
+
         publicAddressMintCount[msg.sender]++;
         _safeMint(msg.sender, nextToken());
     }
@@ -172,10 +199,16 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     */
     function publicPurchaseBatch(uint16 quantity) payable external whenNotPaused onlyDuringOpenedForPublicPurchase ensureAvailability(quantity) withinPublicMintTokenLimit(msg.sender, quantity) {
         // Check if the user has sent the required funds
-        require(msg.value == (mintPrice * quantity), "Incorrect payment");
-        require(quantity <= 7, "Batch Public Mint should be no more than 7 at a time");
+        if (msg.value != (mintPrice * quantity))
+            revert InsufficientValueSent();
+
+        if (quantity > 7)
+            revert BatchMintSizeExceeded();
+
         // check treasury
-        require((availableTokenCount() - quantity) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
+        if ((availableTokenCount() - quantity) < (TREASURY_RESERVATION - treasuryMints))
+            revert NoMoreTokensLeft();
+
         publicAddressMintCount[msg.sender] += quantity;
         for(uint16 i = 0 ; i < quantity; i++) {
             _safeMint(msg.sender, nextToken());
@@ -193,16 +226,22 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     */
     function presalePurchase(PrioritySaleCoupon memory coupon, uint8 couponNumber, uint16 allocation) payable external whenNotPaused ensureAvailability(1) onlyDuringOpenedForPrivateSale {
         // Check if the user has the required funds
-        require(msg.value == mintPrice, "Incorrect payment");
+        if (msg.value != mintPrice)
+            revert InsufficientValueSent();
 
         bytes32 digest = keccak256(
             abi.encode(msg.sender, couponNumber, allocation)
         );
-        require(_isVerifiedCoupon(digest, coupon), 'Invalid coupon');
-        require((presaleCouponMintCount[digest] + 1) <= allocation, "Allocation Exceeded");
+
+        if(!_isVerifiedCoupon(digest, coupon))
+            revert InvalidCoupon();
+
+        if ((presaleCouponMintCount[digest] + 1) > allocation)
+            revert AllocationExceeded();
 
         // check treasury
-        require((availableTokenCount() - 1) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
+        if ((availableTokenCount() - 1) < (TREASURY_RESERVATION - treasuryMints))
+            revert NoMoreTokensLeft();
 
         presaleCouponMintCount[digest]++;
         _safeMint(msg.sender, nextToken());
@@ -221,20 +260,28 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     */
     function presalePurchaseBatch(PrioritySaleCoupon memory coupon, uint8 couponNumber, uint16 allocation, uint16 amountToMint) payable external whenNotPaused ensureAvailability(amountToMint) onlyDuringOpenedForPrivateSale {
         // Check if the user has the required funds
-        require(msg.value == (mintPrice * amountToMint), "Incorrect payment");
+        if (msg.value != (mintPrice * amountToMint))
+            revert InsufficientValueSent();
+
         // Prevent batch minting of more than 7.
-        require(amountToMint <= 7, "Batch Mint no more than 7 at a time");
+        if (amountToMint > 7)
+            revert BatchMintSizeExceeded();
+
         bytes32 digest = keccak256(
             abi.encode(msg.sender, couponNumber, allocation)
         );
-        require(_isVerifiedCoupon(digest, coupon), 'Invalid coupon');
-        require((presaleCouponMintCount[digest] + amountToMint) <= allocation, "Allocation Exceeded");
+
+        if(!_isVerifiedCoupon(digest, coupon))
+            revert InvalidCoupon();
+
+        if ((presaleCouponMintCount[digest] + amountToMint) > allocation)
+            revert AllocationExceeded();
 
         // check treasury
-        require((availableTokenCount() - amountToMint) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
+        if ((availableTokenCount() - amountToMint) < (TREASURY_RESERVATION - treasuryMints))
+            revert NoMoreTokensLeft();
 
         presaleCouponMintCount[digest] += amountToMint;
-
         for(uint i = 0 ; i < amountToMint; i++) {
             _safeMint(msg.sender, nextToken());
         }
@@ -262,9 +309,13 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     * @param qty //qty to send
     */
     function airdrop(address toAddress, uint16 qty) external whenNotPaused ensureAvailability(qty) onlyRole(AIRDROP_ROLE) {
-        require(qty <= 7, "Airdrop Mint no more than 7 at a time");
+        if (qty > 7)
+            revert BatchMintSizeExceeded();
+
         // check treasury
-        require((availableTokenCount() - qty) >= (TREASURY_RESERVATION - treasuryMints), "No More NFT for Sale");
+        if ((availableTokenCount() - qty) < (TREASURY_RESERVATION - treasuryMints))
+            revert NoMoreTokensLeft();
+
         for(uint i = 0 ; i < qty; i++) {
             _safeMint(toAddress, nextToken());
         }
@@ -278,8 +329,12 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     * @param qty //qty to mint
     */
     function treasuryMint(address toAddress, uint16 qty) external whenNotPaused ensureAvailability(qty) onlyRole(AIRDROP_ROLE) {
-        require(qty <= 7, "Treasury Mint no more than 7 at a time");
-        require((qty + treasuryMints) <= TREASURY_RESERVATION, "Amount to Mint Exceeds the Mint Allocation");
+        if (qty > 7)
+            revert BatchMintSizeExceeded();
+
+        if ((qty + treasuryMints) > TREASURY_RESERVATION)
+            revert TreasuryReservationAllocationExceeded();
+
         treasuryMints += qty;
         for(uint i = 0 ; i < qty; i++) {
             _safeMint(toAddress, nextToken());
@@ -300,7 +355,9 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     * @param _newBaseUri The base URI to be used.
     */
     function setURI(string memory _newBaseUri) external onlyRole(GENERAL_OPS_ROLE) {
-        require(contractLocked == false, "The contract has been locked and the Base URI cannot be changed");
+        if (contractLocked)
+            revert ContractAlreadyLocked();
+
         _baseUri = _newBaseUri;
         emit MetadataURIChanged(_newBaseUri);
     }
@@ -460,7 +517,9 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     * @param _tokenId The token id (nft type) of token
     */
     function tokenURI(uint256 _tokenId) override public view returns (string memory) {
-        require(_tokenId >= 0 && _tokenId < MAX_SUPPLY, "Incorrect Token Id");
+        if (_tokenId > MAX_SUPPLY) {
+            revert InvalidTokenId();
+        }
         return string (
             abi.encodePacked(
                 _baseUri,
@@ -549,7 +608,9 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     */
     function _isVerifiedCoupon(bytes32 digest, PrioritySaleCoupon memory coupon) internal view returns (bool) {
         address signer = ecrecover(digest, coupon.v, coupon.r, coupon.s);
-        require(signer != address(0), 'ECDSA: invalid signature'); // Added check for zero address
+        if (signer == address(0))
+            revert InvalidSignature(); // Added check for zero address
+
         return (signer == _couponPublicKey);
     }
 

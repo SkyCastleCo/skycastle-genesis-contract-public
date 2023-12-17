@@ -7,8 +7,8 @@ const { generateKeyPair } = require('../services/KeyService');
 const MAX_SUPPLY = 200;
 const TREASURY_RESERVATION = 50;
 
-const MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE = "Max public mints per wallet reached";
-const COUPON_ALLOCATION_EXCEEDED = 'Allocation Exceeded';
+const MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE = "MaxMintReachedForPublicWallet";
+const ALLOCATION_EXCEED_ERROR_MESSAGE = "AllocationExceeded";
 
 describe("ScaiGenesisReentrancyTest", function () {
     async function deployGenesisContractFixture() {
@@ -98,7 +98,7 @@ describe("ScaiGenesisReentrancyTest", function () {
                         {
                             gasLimit: 3000000
                         }
-                    )).to.be.revertedWith(COUPON_ALLOCATION_EXCEEDED);
+                    )).to.be.revertedWithCustomError(genesisContractDeployed, ALLOCATION_EXCEED_ERROR_MESSAGE);
 
                     const hackerContractBalance = await genesisContractDeployed.balanceOf(
                         genesisAttackPresalePurchaseAttack.target
@@ -138,7 +138,7 @@ describe("ScaiGenesisReentrancyTest", function () {
                         {
                             gasLimit: 10000000
                         }
-                    )).to.be.revertedWith(COUPON_ALLOCATION_EXCEEDED);
+                    )).to.be.revertedWithCustomError(genesisContractDeployed, ALLOCATION_EXCEED_ERROR_MESSAGE);
 
                     let hackerContractBalance = await genesisContractDeployed.balanceOf(genesisAttackPresalePurchaseBatchAttack.target);
                     console.log("GenesisScai balance of Hacker Contract:", hackerContractBalance);
@@ -169,7 +169,7 @@ describe("ScaiGenesisReentrancyTest", function () {
                         value: ethers.parseEther("0.0025"),
                         gasLimit: 10000000
                     }
-                )).to.be.revertedWith(MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE);
+                )).to.be.revertedWithCustomError(genesisContractDeployed, MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE);
 
                 let hackerContractBalance = await genesisContractDeployed.balanceOf(genesisAttackPublicPurchaseBatchAttack.target)
                 console.log("GenesisScai balance of Hacker Contract:", hackerContractBalance);
@@ -198,7 +198,7 @@ describe("ScaiGenesisReentrancyTest", function () {
                         value: ethers.parseEther("0.0025"),
                         gasLimit: 10000000
                     }
-                )).to.be.revertedWith(MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE);
+                )).to.be.revertedWithCustomError(genesisContractDeployed, MAX_MINT_PER_PUBLIC_WALLET_ERROR_MESSAGE);
 
                 let hackerContractBalance = await genesisContractDeployed.balanceOf(genesisAttackPublicPurchaseAttack.target)
 
