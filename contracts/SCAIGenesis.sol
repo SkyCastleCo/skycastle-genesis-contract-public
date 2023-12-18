@@ -210,7 +210,7 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
             revert NoMoreTokensLeft();
 
         publicAddressMintCount[msg.sender] += quantity;
-        for(uint16 i = 0 ; i < quantity; i++) {
+        for(uint16 i = 0 ; i < quantity; ++i) {
             _safeMint(msg.sender, nextToken());
         }
     }
@@ -282,7 +282,7 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
             revert NoMoreTokensLeft();
 
         presaleCouponMintCount[digest] += amountToMint;
-        for(uint i = 0 ; i < amountToMint; i++) {
+        for(uint i = 0 ; i < amountToMint; ++i) {
             _safeMint(msg.sender, nextToken());
         }
 
@@ -316,7 +316,7 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
         if ((availableTokenCount() - qty) < (TREASURY_RESERVATION - treasuryMints))
             revert NoMoreTokensLeft();
 
-        for(uint i = 0 ; i < qty; i++) {
+        for(uint i = 0 ; i < qty; ++i) {
             _safeMint(toAddress, nextToken());
         }
     }
@@ -336,7 +336,7 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
             revert TreasuryReservationAllocationExceeded();
 
         treasuryMints += qty;
-        for(uint i = 0 ; i < qty; i++) {
+        for(uint i = 0 ; i < qty; ++i) {
             _safeMint(toAddress, nextToken());
         }
     }
