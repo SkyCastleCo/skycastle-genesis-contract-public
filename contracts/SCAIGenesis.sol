@@ -347,7 +347,8 @@ contract SCAIGenesis is ERC721, ERC2981, ERC721Enumerable, Ownable, Pausable, Ac
     function withdraw() external onlyRole(GENERAL_OPS_ROLE) nonReentrant
     {
         uint256 balance = address(this).balance;
-        payable(owner()).transfer(balance);
+        (bool success,) = payable(owner()).call{value:balance}("");
+        require(success, "Transfer Failed");
     }
 
     /**
